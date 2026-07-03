@@ -1,0 +1,35 @@
+# work dirs hold source videos, extracted audio, model outputs — never committed
+work/
+work_full/
+work_sample/
+work_*/
+
+# environments
+.venv/
+.venv-mlx/
+
+# large model files and binaries
+tools/
+*.onnx
+
+# media outside samples/
+*.wav
+*.mkv
+*.mov
+*.mp4
+!samples/*.mp4
+
+# logs and scratch
+*.log
+.DS_Store
+__pycache__/
+*.pyc
+
+# secrets
+.env
+.env.*
+
+# machine-local sync files
+.stfolder/
+AGENTS.md
+config.env
