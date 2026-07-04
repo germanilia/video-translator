@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 WORK = ROOT / os.environ.get("VT_WORK", "work")
 VOCALS = WORK / "demucs/htdemucs/audio_44k/vocals.wav"
 REF_TARGET_SEC = 20.0
-MERGE_DIST = 0.55  # cosine distance below which two cluster centroids are one speaker
+MERGE_DIST = float(os.environ.get("VT_MERGE_DIST", "0.55"))  # cosine distance below which two cluster centroids are one speaker; lower it when speakers were hand-curated
 REF_RMS = 0.05  # ~ -26 dBFS, healthy level for cloning references
 SR = 16000
 

@@ -211,9 +211,13 @@ TTS. Read the corrected source dialogue and the Hebrew together, scene by scene.
 Do not rely only on automatic `speakers.json` gender. Verify every first-person
 and second-person Hebrew form against the actual character speaking and the
 actual addressee in the scene. Fix lines that are too literal, too long,
-grammatically wrong, gender-mismatched, or unnatural for the character. This is a
-general quality gate for any video, not a place for movie-specific hacks. Keep
-ids stable and regenerate only changed TTS segments by deleting their wav files.
+grammatically wrong, gender-mismatched, or unnatural for the character. Explicitly
+check Hebrew grammar details that TTS will make obvious: definiteness chains
+(`גל הפשע החדש`, not a dangling indefinite/definite mix when the English means a
+specific wave), adjective agreement, construct-state phrasing, prepositions,
+pronouns, and singular/plural agreement. This is a general quality gate for any
+video, not a place for movie-specific hacks. Keep ids stable and regenerate only
+changed TTS segments by deleting their wav files.
 
 ## MANDATORY: clean LLM translation output after every scripted run
 

@@ -11,6 +11,7 @@ from pathlib import Path
 
 DEFAULT_OVERRIDES = {
     "עַכְבְּרוּשׁ": "עַכְבָּרוֹשׁ",
+    "קְרָאטָה": "קָרָטֶה",
 }
 
 
