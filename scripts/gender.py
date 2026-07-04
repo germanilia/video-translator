@@ -21,7 +21,7 @@ VOCALS = WORK / "demucs/htdemucs/audio_44k/vocals.wav"
 MODEL = "alefiury/wav2vec2-large-xlsr-53-gender-recognition-librispeech"
 SR = 16000
 POOL_SEC = 20.0
-CONF_FEMALE = 0.65  # below this confidence, default to male (safer in Hebrew)
+CONF_FEMALE = float(__import__("os").environ.get("VT_FEMALE_CONF", "0.95"))  # strict: young male voices score falsely high
 
 
 def main() -> None:
@@ -60,6 +60,12 @@ def main() -> None:
         speakers[spk]["female_prob"] = round(female_p, 3)
         print(f"{spk}: female_p={female_p:.2f} -> {gender}")
 
+    overrides_path = WORK / "gender_overrides.json"
+    if overrides_path.exists():
+        for spk, g in json.loads(overrides_path.read_text()).items():
+            if spk in speakers and speakers[spk]["gender"] != g:
+                speakers[spk]["gender"] = g
+                print(f"override: {spk} -> {g}")
     (WORK / "speakers.json").write_text(json.dumps(speakers, indent=2))
     print("updated", WORK / "speakers.json")
 

@@ -26,7 +26,26 @@ uv run python scripts/run_full.py "/path/to/video.mp4" --work work_myvideo
 ```
 
 ALL keys and tunables live in `config.env` at the repo root (auto-created from
-`config.env.example` on first run, gitignored — never commit it).
+`config.env.example` on first run, gitignored — never commit it). Runtime env vars
+also work and override `config.env`; if the wizard says a key is missing, verify
+both `env` and `config.env` before telling the user to paste secrets into a file.
+
+## Work directory rule — one folder per video
+
+Always create a dedicated work folder for each source video. Never reuse generic
+folders like `work`, `work_full`, or another movie's folder, because resumable
+stages will skip existing files and can silently mix transcripts, voices, and
+outputs from different videos.
+
+Use a short source-derived slug, for example:
+
+```bash
+uv run python scripts/run_full.py "/path/to/trailer.mp4" --work work_trailer_720p
+```
+
+When a user asks for both TTS backends, run the same dedicated work folder twice:
+first with `--tts local`, then with `--tts elevenlabs`. `run_full.py` accepts only
+one TTS backend per invocation; it does not produce both outputs in one run.
 
 ### Conversational wizard (when an agent drives for a human)
 
@@ -46,15 +65,17 @@ available selections — never pre-pick silently. Required option lists:
 **2. Voices (TTS)** (present both):
    a. **Free local** — Chatterbox MLX voice cloning, unlimited, Apple GPU.
    b. **Paid ElevenLabs** — closest to original voices; `ELEVENLABS_API_KEY`
-      in config.env; ~40K characters per 90-min movie; 10 voice-slot limit.
+      in config.env or environment; ~40K characters per 90-min movie; 10 voice-slot limit.
+      If the user chooses both, produce both outputs by running the same work dir twice.
 
 **3. Upscale** (present both, with guidance):
    a. **Yes** — Real-ESRGAN 2x; recommend only for low-res sources (<720p);
       hours for a movie, resumable.
    b. **No** — recommend for already-HD sources.
 
-For every choice that needs a key, tell the user the exact `config.env` line
-to fill and wait for their confirmation before proceeding.
+For every choice that needs a key, first check whether the key is already present
+in the process environment. If it is not, tell the user the exact `config.env`
+line to fill and wait for their confirmation before proceeding.
 
 For unattended runs pass answers as flags (no prompts):
 
@@ -146,16 +167,27 @@ Scripted backends, in quality order, for unattended runs or fallback:
 2. `scripts/translate_ollama.py` - local Gemma (free, always works offline).
 3. `scripts/translate.py` - NLLB-200 (fast, literal).
 
-## Dialogue-logic review of speaker attribution (agent duty)
+## Transcript + dialogue review before translation (agent duty)
 
-Audio diarization occasionally assigns a short reply to the wrong speaker
-(acoustics of whispered one-word lines are ambiguous). Before TTS, read
-`segments.json` as a dialogue and fix attributions that are semantically
-impossible - e.g. a question and its answer carrying the same speaker, or a
-reply that must belong to the interlocutor. Edit the segment's `speaker` field in `segments.json` (the single source of
-truth - all consumers join it by id), delete that segment's wav in `tts/` and
-`tts_11labs/` if it exists, and let the next TTS run regenerate it. Scripted runs get embedding-based QC only; this
-semantic check is YOUR value-add.
+ASR can produce grammatically broken or semantically impossible English, especially
+on trailers with music, cuts, whispered one-word lines, and overlapping dialogue.
+Before translating, read `segments.json` as a complete dialogue and perform a
+human transcript pass:
+
+1. Fix obvious ASR mistakes in each segment's `text` when the intended sentence is
+   clear from context. Do not invent missing plot content; only repair clear errors.
+2. Fix dialogue splits/joins that make a sentence nonsensical when the surrounding
+   segments show the intended sentence. Keep ids stable whenever possible.
+3. Fix speaker attributions that are semantically impossible - e.g. a question and
+   its answer carrying the same speaker, or a reply that must belong to the
+   interlocutor.
+4. Then translate from the corrected `segments.json`, not from the raw ASR text.
+
+Edit `segments.json` directly: it is the single source of truth and all consumers
+join by id. If TTS was already generated for changed lines, delete those segment
+wavs in `tts/` and `tts_11labs/` so the next run regenerates them. Scripted runs
+get embedding-based QC only; this semantic transcript/dialogue check is YOUR
+value-add.
 
 ## MANDATORY: clean LLM translation output after every scripted run
 
@@ -212,12 +244,13 @@ uv run python scripts/upscale.py in.mp4 out.mp4 --model realesrgan-x4plus --scal
 
 ## ElevenLabs specifics (paid backend)
 
-- Requires `ELEVENLABS_API_KEY` in env with instant-voice-cloning enabled. Never commit keys.
+- Requires `ELEVENLABS_API_KEY` in env or `config.env` with instant-voice-cloning enabled. Never commit keys.
 - Top-9 speakers (by line count) are cloned from `<work>/refs/`; voice ids are cached in
   `<work>/voices_11labs.json` — clones are created once and reused, never re-cloned.
 - Minor speakers use stock voices (no voice slots consumed).
-- Voice slots are limited (10 on Starter); delete stale `vt_movie_*` voices via the API
-  before dubbing a new movie if slots run out.
+- Voice slots are limited (10 on Starter). Before cloning fails, check `/user/subscription`
+  or the voices list; if slots are full, ask permission and delete stale `vt_movie_*`
+  voices via the API before rerunning ElevenLabs TTS.
 - Budget: ≈40K characters per 90-minute movie; check with the account quota endpoint first.
 
 ## Environments — two venvs, do not merge them
