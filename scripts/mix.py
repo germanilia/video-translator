@@ -43,6 +43,10 @@ VOCALS = WORK / "demucs/htdemucs/audio_44k/vocals.wav"
 # that runs shorter than the English one never lets the English tail through.
 FILL_GAIN = 0.9
 FILL_THRESH = 0.006  # vocal-stem RMS above this counts as "someone is vocalizing"
+# In continuous dialogue, the short pauses between transcribed lines contain
+# original-language tails/breaths; without bridging, fill pushes them through
+# between dub lines and it reads as an "echo" of the original actor.
+FILL_BRIDGE_SEC = float(os.environ.get("VT_FILL_BRIDGE_SEC", "0.8"))
 START_PAD = 0.15  # delay each dub line; whisper starts run early (VAD pre-roll)
 SLOT_TAIL = 0.35  # dubbed window mask extends this far past the original line end
 
@@ -107,10 +111,19 @@ def speech_onset(rms: torch.Tensor, start: float, end: float, offset_sec: float 
 def slot_mask(segs: list[dict], length: int, offset_sec: float = 0.0) -> torch.Tensor:
     """1.0 inside any dubbed line's original time window (padded), 0.0 elsewhere."""
     mask = torch.zeros(length)
+    windows = []
     for seg in segs:
         a = int((seg["start"] - offset_sec - 0.05) * SR)
         b = int((seg["end"] - offset_sec + SLOT_TAIL) * SR)
         mask[max(0, a) : min(length, b)] = 1.0
+        windows.append((a, b))
+    # bridge short inter-line gaps so fill/bed can't leak original-language bursts
+    windows.sort()
+    prev_end = None
+    for a, b in windows:
+        if prev_end is not None and 0 < a - prev_end < int(FILL_BRIDGE_SEC * SR):
+            mask[max(0, prev_end) : min(length, a)] = 1.0
+        prev_end = b if prev_end is None else max(prev_end, b)
     return _smooth(mask, DUCK_FADE_SEC).clamp(0, 1)
 
 

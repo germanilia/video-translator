@@ -10,18 +10,22 @@ music and sound effects are preserved, only the dialogue is replaced.
 
 ## Samples
 
-The same scene from [Sintel](https://durian.blender.org) (© Blender Foundation,
-CC-BY 3.0), dubbed by this pipeline — click to play:
+Short Hebrew-dub demos from both supported TTS backends — click to play:
 
-| Sample | What you hear |
-|---|---|
-| [🎬 Original (English)](samples/sintel_original.mp4) | Source audio, untouched |
-| [🎬 Hebrew — local backend (free)](samples/sintel_hebrew_local.mp4) | Chatterbox MLX zero-shot voice clones, Gemma translation |
-| [🎬 Hebrew — ElevenLabs backend](samples/sintel_hebrew_elevenlabs.mp4) | eleven_v3 instant voice clones, same translation |
+| Clip | Local backend (free) | ElevenLabs backend |
+|---|---|---|
+| Sintel scene | [🎬 Local](samples/sintel_hebrew_local.mp4) | [🎬 ElevenLabs](samples/sintel_hebrew_elevenlabs.mp4) |
+| Bluey — opener | [🎬 Local](samples/bluey_opener_local.mp4) | [🎬 ElevenLabs](samples/bluey_opener_elevenlabs.mp4) |
+| Bluey — Bella scene | [🎬 Local](samples/bluey_bella_local.mp4) | [🎬 ElevenLabs](samples/bluey_bella_elevenlabs.mp4) |
+| Bluey — sleepover | [🎬 Local](samples/bluey_sleepover_local.mp4) | [🎬 ElevenLabs](samples/bluey_sleepover_elevenlabs.mp4) |
+| TMNT trailer | [🎬 Local](samples/tmnt_trailer_hebrew_local.mp4) | [🎬 ElevenLabs](samples/tmnt_trailer_hebrew_elevenlabs.mp4) |
 
-All three share the identical native video track, so the comparison is purely
-about the dubbed audio. Generated end-to-end by `scripts/run_full.py` — the
-67-second scene takes ~2.5 minutes on an M1 Max.
+Original comparison clip: [🎬 Sintel source audio](samples/sintel_original.mp4)
+(© Blender Foundation, CC-BY 3.0).
+
+The paired local/ElevenLabs samples share the same video track and translation,
+so the comparison is purely about the dubbed audio. Generated end-to-end by
+`scripts/run_full.py` or `scripts/mix_window.py` for short demo cuts.
 
 ## How it works
 
