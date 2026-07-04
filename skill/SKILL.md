@@ -173,12 +173,14 @@ Scripted backends, in quality order, for unattended runs or fallback:
 2. `scripts/translate_ollama.py` - local Gemma (free, always works offline).
 3. `scripts/translate.py` - NLLB-200 (fast, literal).
 
-## Transcript + dialogue review before translation (agent duty)
+## Transcript + character review before translation (agent duty)
 
-ASR can produce grammatically broken or semantically impossible English, especially
-on trailers with music, cuts, whispered one-word lines, and overlapping dialogue.
+ASR and diarization can produce grammatically broken English and mixed character
+clusters, especially on trailers with music, cuts, whispered one-word lines, and
+overlapping dialogue. Do not blindly trust `speakers.json`: a cluster can contain
+both a woman and teenage boys, and a single segment can contain two characters.
 Before translating, read `segments.json` as a complete dialogue and perform a
-human transcript pass:
+human transcript + character pass:
 
 1. Fix obvious ASR mistakes in each segment's `text` when the intended sentence is
    clear from context. Do not invent missing plot content; only repair clear errors.
@@ -187,22 +189,31 @@ human transcript pass:
 3. Fix speaker attributions that are semantically impossible - e.g. a question and
    its answer carrying the same speaker, or a reply that must belong to the
    interlocutor.
-4. Then translate from the corrected `segments.json`, not from the raw ASR text.
+4. If a speaker cluster mixes characters, translate each line by the actual
+   character in context, not the cluster-level gender. For first-person Hebrew,
+   infer the speaker's real character gender per line. For second-person Hebrew,
+   infer the addressee per line.
+5. If one segment clearly contains two different characters and that affects
+   gender, meaning, or voice, split it into stable separate segments before TTS
+   when timing allows; otherwise keep the text concise and document the compromise.
+6. Then translate from the corrected `segments.json`, not from the raw ASR text.
 
 Edit `segments.json` directly: it is the single source of truth and all consumers
 join by id. If TTS was already generated for changed lines, delete those segment
 wavs in `tts/` and `tts_11labs/` so the next run regenerates them. Scripted runs
-get embedding-based QC only; this semantic transcript/dialogue check is YOUR
+get embedding-based QC only; this semantic transcript/character check is YOUR
 value-add.
 
 ## MANDATORY: second-pass translation review and cleanup
 
 Every agent-written or scripted translation needs a second review pass before
 TTS. Read the corrected source dialogue and the Hebrew together, scene by scene.
-Fix lines that are too literal, too long, grammatically wrong, gender-mismatched,
-or unnatural for the character. This is a general quality gate for any video, not
-a place for movie-specific hacks. Keep ids stable and regenerate only changed TTS
-segments by deleting their wav files.
+Do not rely only on automatic `speakers.json` gender. Verify every first-person
+and second-person Hebrew form against the actual character speaking and the
+actual addressee in the scene. Fix lines that are too literal, too long,
+grammatically wrong, gender-mismatched, or unnatural for the character. This is a
+general quality gate for any video, not a place for movie-specific hacks. Keep
+ids stable and regenerate only changed TTS segments by deleting their wav files.
 
 ## MANDATORY: clean LLM translation output after every scripted run
 
