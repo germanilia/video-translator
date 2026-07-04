@@ -146,9 +146,15 @@ Translation contract (same rules the scripted backends enforce):
   ADDRESSEE's gender (the nearest other speaker in the scene) for all
   second-person forms - Hebrew genders both directions; keep scene
   continuity - translate consecutive lines together, never in isolation.
-- Work in batches and checkpoint (write partial translations.json as you go);
-  after finishing, run `scripts/fix_translations.py` as a lint, then REVIEW the
-  whole script for gender agreement and grammar (`scripts/review_translations.py`,
+- Work in batches and checkpoint (write partial translations.json as you go).
+- After the first full translation, do a mandatory second pass over the whole
+  script before TTS: compare corrected English `segments.json` against
+  `translations.json`, verify the Hebrew is natural spoken Israeli Hebrew, keeps
+  the intended meaning, fits the timing, and uses correct speaker/addressee
+  gender. Fix the JSON and delete stale TTS wavs for changed ids. Do not overfit
+  to one movie; apply general dubbing judgment that works for any video.
+- After the second pass, run `scripts/fix_translations.py` as a lint, then REVIEW
+  the whole script for gender agreement and grammar (`scripts/review_translations.py`,
   or do the review yourself with the same speaker/addressee gender map) - a
   one-shot translation always contains agreement slips.
 
@@ -188,6 +194,15 @@ join by id. If TTS was already generated for changed lines, delete those segment
 wavs in `tts/` and `tts_11labs/` so the next run regenerates them. Scripted runs
 get embedding-based QC only; this semantic transcript/dialogue check is YOUR
 value-add.
+
+## MANDATORY: second-pass translation review and cleanup
+
+Every agent-written or scripted translation needs a second review pass before
+TTS. Read the corrected source dialogue and the Hebrew together, scene by scene.
+Fix lines that are too literal, too long, grammatically wrong, gender-mismatched,
+or unnatural for the character. This is a general quality gate for any video, not
+a place for movie-specific hacks. Keep ids stable and regenerate only changed TTS
+segments by deleting their wav files.
 
 ## MANDATORY: clean LLM translation output after every scripted run
 
@@ -241,6 +256,19 @@ uv run python scripts/upscale.py in.mp4 out.mp4 --model realesrgan-x4plus --scal
 - Requires the realesrgan binary in `tools/realesrgan/` (see README Setup step 7).
 - Cheap alternative for casual viewing: real-time playback upscaling
   (IINA/mpv + Anime4K shaders) — zero preprocessing.
+
+## Pronunciation overrides
+
+Dicta niqqud is required, but it can mis-vowelize rare words, names, slang, or
+loanwords. Use pronunciation overrides as a generic lexicon, not hardcoded
+movie-specific fixes in TTS scripts:
+
+- Repo-wide: `pronunciation_overrides.json`
+- Per-video: `<work>/pronunciation_overrides.json`
+- Explicit path: `VT_PRONUNCIATION_OVERRIDES=/path/to/overrides.json`
+
+The JSON maps Dicta's vowelized output to the corrected vowelized form. After
+adding an override, delete affected segment wavs and rerun TTS/mix.
 
 ## ElevenLabs specifics (paid backend)
 

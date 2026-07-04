@@ -16,7 +16,9 @@ import numpy as np
 import soundfile as sf
 from dicta_onnx import Dicta
 from hebrew_gender import addressee_map, feminize_second_person, speaker_overrides
+from hebrew_pronunciation import apply_pronunciation_overrides, load_overrides
 from mlx_audio.tts.generate import generate_audio
+from mlx_audio.tts.models.chatterbox import tokenizer as chatterbox_tokenizer
 from mlx_audio.tts.utils import load_model
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -39,10 +41,12 @@ def trim_silence(wav: np.ndarray, sr: int) -> np.ndarray:
 
 def main() -> None:
     dicta = Dicta(str(ROOT / "work/models/dicta-1.0.onnx"))
+    chatterbox_tokenizer._dicta = dicta
     model = load_model(MODEL)
     segs = json.loads((WORK / "translations.json").read_text())
     speaker_overrides(WORK, segs)
     addr = addressee_map(WORK)
+    pronunciation_overrides = load_overrides(ROOT, WORK)
     out_dir = WORK / "tts"
     out_dir.mkdir(parents=True, exist_ok=True)
 
@@ -57,6 +61,7 @@ def main() -> None:
         if addr.get(seg["id"]) == "female":
             # dicta defaults ambiguous 2nd-person forms to masculine vowels
             text = feminize_second_person(text)
+        text = apply_pronunciation_overrides(text, pronunciation_overrides)
         generate_audio(
             text=text,
             model=model,

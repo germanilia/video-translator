@@ -21,6 +21,7 @@ import requests
 import soundfile as sf
 from dicta_onnx import Dicta
 from hebrew_gender import addressee_map, feminize_second_person, speaker_overrides
+from hebrew_pronunciation import apply_pronunciation_overrides, load_overrides
 
 import vt_config  # noqa: F401  (loads config.env)
 
@@ -126,6 +127,7 @@ def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     voices = ensure_voices(segs)
     addr = addressee_map(WORK)
+    pronunciation_overrides = load_overrides(ROOT, WORK)
     dicta = Dicta(str(ROOT / "work/models/dicta-1.0.onnx"))
     total_chars = 0
     t0 = time.time()
@@ -138,6 +140,7 @@ def main() -> None:
         text = dicta.add_diacritics(seg["text_he"])
         if addr.get(seg["id"]) == "female":
             text = feminize_second_person(text)
+        text = apply_pronunciation_overrides(text, pronunciation_overrides)
         tts(text, voices[seg["speaker"]], out)
         total_chars += len(seg["text_he"])
         if (i + 1) % 50 == 0:
